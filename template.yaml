@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'api.example.com - Microservices codepipeline.'
+Description: 'Microservices codepipeline - api.example.com'
 Parameters:
   BaseStackName:
     Type: String
