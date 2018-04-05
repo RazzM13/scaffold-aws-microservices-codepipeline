@@ -41,7 +41,7 @@
     ParameterOverrides:
       'Fn::Sub': |-
         {
-        "BaseStackName": "${BaseStackName}"
+        "BaseStackName": "${BaseStackName}-{{@key}}"
         }
     TemplatePath: '{{@key}}-Build::cf_stage.yaml'
   RunOrder: 2

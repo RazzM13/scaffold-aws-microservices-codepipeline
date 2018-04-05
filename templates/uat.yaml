@@ -46,7 +46,7 @@
     ParameterOverrides:
       'Fn::Sub': |-
         {
-        "BaseStackName": "${BaseStackName}",
+        "BaseStackName": "${BaseStackName}-{{@key}}",
         "StageNameParameter": "uat"
         }
     TemplatePath: '{{@key}}-Build::cf_stage.yaml'
