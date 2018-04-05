@@ -1,0 +1,7 @@
+# Reference: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-guide.html
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Helloworld microservice - Base.'
+Resources:
+  # The resources that should be available accross all microservice deployments.
+Outputs:
+  # Any references you would like to access from stage deployments.

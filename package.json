@@ -1,0 +1,47 @@
+{
+  "name": "com_example_api",
+  "version": "0.0.1",
+  "description": "An AWS Codepipeline for APIs based on the scaffold-aws-rest-microservice-nodejs project.",
+  "main": "index.js",
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "dependencies": {
+    "cfn-lint": "^1.5.1",
+    "clone": "^2.1.1",
+    "dot": "^1.1.2",
+    "fs-extra": "^5.0.0",
+    "handlebars": "^4.0.11",
+    "js-yaml": "^3.11.0",
+    "json-deref": "^1.1.0",
+    "json-dereference-cli": "^0.1.2",
+    "json-schema-ref-parser": "^4.1.1",
+    "mustache": "^2.3.0",
+    "nopy": "^0.2.4",
+    "promise": "^8.0.1",
+    "traverse": "^0.6.6",
+    "yargs": "^11.0.0"
+  },
+  "devDependencies": {},
+  "python": {
+    "dependencies": {
+      "awscli": ">=1.11.132"
+    }
+  },
+  "config": {
+    "StackName": "com-example-api-codepipeline"
+  },
+  "scripts": {
+    "install": "npip install",
+    "generate": "node generator.js",
+    "validate": "cfn-lint validate out.yaml",
+    "deploy": "aws cloudformation deploy --template-file out.yaml --stack-name $npm_package_config_StackName --capabilities CAPABILITY_IAM",
+    "install-codepipeline": "npm run generate && npm run validate && npm run deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RazzM13/codepipeline-aws-rest-microservices.git"
+  },
+  "author": "RazzM13",
+  "license": "MIT"
+}

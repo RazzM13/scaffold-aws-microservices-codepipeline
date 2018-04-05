@@ -1,0 +1,88 @@
+{{#each Microservices}}
+- InputArtifacts: []
+  Name: {{@key}}-Reset
+  ActionTypeId:
+    Category: Deploy
+    Owner: AWS
+    Version: '1'
+    Provider: CloudFormation
+  OutputArtifacts: []
+  Configuration:
+    StackName:
+      'Fn::Join':
+        - '-'
+        -
+          - Ref: BaseStackName
+          - '{{@key}}-uat'
+    ActionMode: DELETE_ONLY
+    RoleArn:
+      'Fn::GetAtt':
+        - CloudFormationRole
+        - Arn
+  RunOrder: 1
+- InputArtifacts:
+    - Name: {{@key}}-Build
+  Name: {{@key}}-Prep
+  ActionTypeId:
+    Category: Deploy
+    Owner: AWS
+    Version: '1'
+    Provider: CloudFormation
+  OutputArtifacts: []
+  Configuration:
+    ActionMode: CHANGE_SET_REPLACE
+    ChangeSetName: latest
+    RoleArn:
+      'Fn::GetAtt':
+        - CloudFormationRole
+        - Arn
+    Capabilities: CAPABILITY_IAM
+    StackName:
+      'Fn::Join':
+        - '-'
+        -
+          - Ref: BaseStackName
+          - '{{@key}}-uat'
+    ParameterOverrides:
+      'Fn::Sub': |-
+        {
+        "BaseStackName": "${BaseStackName}",
+        "StageNameParameter": "uat"
+        }
+    TemplatePath: '{{@key}}-Build::cf_stage.yaml'
+  RunOrder: 2
+- InputArtifacts: []
+  Name: {{@key}}-Deploy
+  ActionTypeId:
+    Category: Deploy
+    Owner: AWS
+    Version: '1'
+    Provider: CloudFormation
+  OutputArtifacts: []
+  Configuration:
+    StackName:
+      'Fn::Join':
+        - '-'
+        -
+          - Ref: BaseStackName
+          - '{{@key}}-uat'
+    ActionMode: CHANGE_SET_EXECUTE
+    ChangeSetName: latest
+  RunOrder: 3
+{{#if ../Approvals.UAT}}
+- InputArtifacts: []
+  Name: {{@key}}-Approve
+  ActionTypeId:
+    Category: Approval
+    Owner: AWS
+    Version: '1'
+    Provider: Manual
+  OutputArtifacts: []
+  {{#if ../Notifications.UATApproval}}
+  Configuration:
+    NotificationArn:
+      Ref: UATApprovalSNSTopic
+  {{/if}}
+  RunOrder: 4
+{{/if}}
+{{/each}}

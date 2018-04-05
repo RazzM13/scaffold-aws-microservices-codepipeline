@@ -1,0 +1,128 @@
+BaseStackName: 'com-example-api'
+
+Stages:
+  Source: true
+  Build: true
+  Install: true
+  UT: true
+  ST: true
+  UAT: true
+  Production: true
+
+Approvals:
+  ST: true
+  UAT: true
+  Production: true
+
+Notifications:
+  PipelineNotification:
+    DisplayName: 'Pipeline'
+    Subscription:
+      - Endpoint: 'maillist@example.com'
+        Protocol: email
+    States:
+      STARTED: true
+      SUCCEEDED: true
+      RESUMED: true
+      FAILED: true
+      CANCELED: true
+      SUPERSEDED: true
+  StagingNotification:
+    DisplayName: 'Staging'
+    Subscription:
+      - Endpoint: 'maillist@example.com'
+        Protocol: email
+    Stages:
+      Source: true
+      Build: true
+      Install: true
+      UT: true
+      ST: true
+      UAT: true
+      Production: true
+    States:
+      STARTED: true
+      SUCCEEDED: true
+      RESUMED: true
+      FAILED: true
+      CANCELED: true
+  STApproval:
+    DisplayName: 'ST'
+    Subscription:
+      - Endpoint: 'maillist@example.com'
+        Protocol: email
+  UATApproval:
+    DisplayName: 'UAT'
+    Subscription:
+      - Endpoint: 'maillist@example.com'
+        Protocol: email
+  ProductionApproval:
+    DisplayName: 'PRODUCTION'
+    Subscription:
+      - Endpoint: 'maillist@example.com'
+        Protocol: email
+
+Microservices:
+  # example that uses a single GitHub repository
+  helloworld1:
+    Sources:
+      MainSrc:
+        ActionTypeId:
+          Category: Source
+          Owner: ThirdParty
+          Version: 1
+          Provider: GitHub
+        Configuration:
+          Owner: username
+          Repo: example-repository
+          Branch: master
+          OAuthToken: ******
+          PollForSourceChanges: true
+        RunOrder: 1
+    BuildSource: MainSrc
+    TestSource: MainSrc
+
+  # example that uses a single AWS CodeCommit repository
+  helloworld2:
+    Sources:
+      MainSrc:
+        ActionTypeId:
+          Category: Source
+          Owner: AWS
+          Version: 1
+          Provider: CodeCommit
+        Configuration:
+          RepositoryName: example-repository
+          BranchName: master
+          PollForSourceChanges: true
+        RunOrder: 1
+    BuildSource: MainSrc
+    TestSource: MainSrc
+
+  # example that uses distinct AWS S3 source repositories
+  helloworld3:
+    Sources:
+      MainSrc:
+        ActionTypeId:
+          Category: Source
+          Owner: AWSMainSrc
+          Version: 1
+          Provider: S3
+        Configuration:
+          S3Bucket: example-bucket
+          S3ObjectKey: main
+          PollForSourceChanges: true
+        RunOrder: 1
+      TestSrc:
+        ActionTypeId:
+          Category: Source
+          Owner: AWS
+          Version: 1
+          Provider: S3
+        Configuration:
+          S3Bucket: example-bucket
+          S3ObjectKey: test
+          PollForSourceChanges: true
+        RunOrder: 1
+    BuildSource: MainSrc
+    TestSource: TestSrc

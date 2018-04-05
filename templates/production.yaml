@@ -1,0 +1,66 @@
+{{#each Microservices}}
+{{#if ../Approvals.Production}}
+- InputArtifacts: []
+  Name: {{@key}}-Confirm
+  ActionTypeId:
+    Category: Approval
+    Owner: AWS
+    Version: '1'
+    Provider: Manual
+  OutputArtifacts: []
+  {{#if ../Notifications.ProductionApproval}}
+  Configuration:
+    NotificationArn:
+      Ref: ProductionApprovalSNSTopic
+  {{/if}}
+  RunOrder: 1
+{{/if}}
+- InputArtifacts:
+    - Name: {{@key}}-Build
+  Name: {{@key}}-Prep
+  ActionTypeId:
+    Category: Deploy
+    Owner: AWS
+    Version: '1'
+    Provider: CloudFormation
+  OutputArtifacts: []
+  Configuration:
+    ActionMode: CHANGE_SET_REPLACE
+    ChangeSetName: latest
+    RoleArn:
+      'Fn::GetAtt':
+        - CloudFormationRole
+        - Arn
+    Capabilities: CAPABILITY_IAM
+    StackName:
+      'Fn::Join':
+        - '-'
+        -
+          - Ref: BaseStackName
+          - '{{@key}}-V1'
+    ParameterOverrides:
+      'Fn::Sub': |-
+        {
+        "BaseStackName": "${BaseStackName}"
+        }
+    TemplatePath: '{{@key}}-Build::cf_stage.yaml'
+  RunOrder: 2
+- InputArtifacts: []
+  Name: {{@key}}-Deploy
+  ActionTypeId:
+    Category: Deploy
+    Owner: AWS
+    Version: '1'
+    Provider: CloudFormation
+  OutputArtifacts: []
+  Configuration:
+    StackName:
+      'Fn::Join':
+        - '-'
+        -
+          - Ref: BaseStackName
+          - '{{@key}}-V1'
+    ActionMode: CHANGE_SET_EXECUTE
+    ChangeSetName: latest
+  RunOrder: 3
+{{/each}}

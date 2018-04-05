@@ -1,0 +1,345 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'api.example.com - Microservices codepipeline.'
+Parameters:
+  BaseStackName:
+    Type: String
+    Default:
+      $ref: 'config.yaml#/BaseStackName'
+    Description: 'Common prefix for all resources.'
+Resources:
+  ArtifactStore:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName:
+        'Fn::Join':
+          - '-'
+          -
+            - Ref: BaseStackName
+            - 'artifacts'
+  CodePipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location:
+          Ref: ArtifactStore
+      Name:
+        'Fn::Join':
+          - '-'
+          -
+            - Ref: BaseStackName
+            - 'codepipeline'
+      RoleArn:
+        'Fn::GetAtt':
+          - CodePipelineRole
+          - Arn
+      Stages:
+        {{#if Stages.Source}}
+        - Name: Source
+          Actions:
+            $ref: '#/templates/source'
+        {{/if}}
+        {{#if Stages.Build}}
+        - Name: Build
+          Actions:
+            $ref: '#/templates/build'
+        {{/if}}
+        {{#if Stages.Install}}
+        - Name: Install
+          Actions:
+            $ref: '#/templates/install'
+        {{/if}}
+        {{#if Stages.UT}}
+        - Name: UT
+          Actions:
+            $ref: '#/templates/ut'
+        {{/if}}
+        {{#if Stages.ST}}
+        - Name: ST
+          Actions:
+            $ref: '#/templates/st'
+        {{/if}}
+        {{#if Stages.UAT}}
+        - Name: UAT
+          Actions:
+            $ref: '#/templates/uat'
+        {{/if}}
+        {{#if Stages.Production}}
+        - Name: Production
+          Actions:
+            $ref: '#/templates/production'
+        {{/if}}
+  CodePipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - 'codepipeline.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: 'root'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sns:Publish'
+                  - 'iam:PassRole'
+                  - 'codecommit:GetBranch'
+                  - 'codecommit:GetCommit'
+                  - 'codecommit:UploadArchive'
+                  - 'codecommit:GetUploadArchiveStatus'
+                  - 'codecommit:CancelUploadArchive'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 's3:Get*'
+                  - 's3:Put*'
+                  - 's3:List*'
+                Resource:
+                  - 'Fn::Join':
+                    - ''
+                    - - 'Fn::GetAtt':
+                        - ArtifactStore
+                        - Arn
+                      - '/*'
+
+              - Effect: Allow
+                Action:
+                  - 'codebuild:BatchGetBuilds'
+                  - 'codebuild:StartBuild'
+                Resource:
+                  - 'Fn::GetAtt':
+                    - CodeBuildBuildProject
+                    - Arn
+                  - 'Fn::GetAtt':
+                    - CodeBuildTestProject
+                    - Arn
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:*'
+                Resource:
+                  'Fn::Join':
+                    - ''
+                    -
+                      - 'arn:aws:cloudformation:*:*:stack/'
+                      - Ref: BaseStackName
+                      - '*/*'
+
+  CodeBuildBuildProject:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name:
+        'Fn::Join':
+          - '-'
+          -
+            - Ref: BaseStackName
+            - 'codebuild-build'
+      Environment:
+        Type: 'LINUX_CONTAINER'
+        Image: 'aws/codebuild/nodejs:6.3.1'
+        ComputeType: 'BUILD_GENERAL1_SMALL'
+      Artifacts:
+        Type: 'CODEPIPELINE'
+      Source:
+        Type: 'CODEPIPELINE'
+        BuildSpec: 'cb_build.yaml'
+        GitCloneDepth: 1
+      ServiceRole:
+        'Fn::GetAtt':
+          - CodeBuildProjectRole
+          - Arn
+  CodeBuildTestProject:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name:
+        'Fn::Join':
+          - '-'
+          -
+            - Ref: BaseStackName
+            - 'codebuild-test'
+      Environment:
+        Type: 'LINUX_CONTAINER'
+        Image: 'aws/codebuild/nodejs:6.3.1'
+        ComputeType: 'BUILD_GENERAL1_SMALL'
+      Artifacts:
+        Type: 'CODEPIPELINE'
+      Source:
+        Type: 'CODEPIPELINE'
+        BuildSpec: 'cb_test.yaml'
+        GitCloneDepth: 1
+      ServiceRole:
+        'Fn::GetAtt':
+          - CodeBuildProjectRole
+          - Arn
+  CodeBuildProjectRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - 'codebuild.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: 'root'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 's3:Get*'
+                  - 's3:Put*'
+                  - 's3:List*'
+                Resource:
+                  - 'Fn::Join':
+                    - ''
+                    - - 'Fn::GetAtt':
+                        - ArtifactStore
+                        - Arn
+                      - '/*'
+  CloudFormationRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - 'cloudformation.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: 'root'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: '*'
+
+{{#each Notifications}}
+  {{@key}}SNSTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      DisplayName: {{DisplayName}}
+      Subscription:
+        $ref: 'config.yaml#/Notifications/{{@key}}/Subscription'
+{{/each}}
+
+{{#if Notifications.StagingNotification}}
+  StagingNotificationEvent:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        source:
+          - aws.codepipeline
+        detail-type:
+          - CodePipeline Stage Execution State Change
+        detail:
+          pipeline:
+            - Ref: CodePipeline
+          {{#if Notifications.StagingNotification.Stages}}
+          stage:
+            {{#each Notifications.StagingNotification.Stages}}
+            {{#if this}}
+            - {{@key}}
+            {{/if}}
+            {{/each}}
+          {{/if}}
+          {{#if Notifications.StagingNotification.States}}
+          state:
+            {{#each Notifications.StagingNotification.States}}
+            {{#if this}}
+            - {{@key}}
+            {{/if}}
+            {{/each}}
+          {{/if}}
+      Targets:
+        - Id: StagingNotificationSNSTopic
+          Arn:
+            Ref: StagingNotificationSNSTopic
+          InputTransformer:
+            InputPathsMap:
+              stage: '$.detail.stage'
+              state: '$.detail.state'
+              executionId: '$.detail.execution-id'
+            InputTemplate: '"<state> - <stage> - <executionId>"'
+  StagingNotificationSNSTopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sns:Publish
+            Resource:
+              - Ref: StagingNotificationSNSTopic
+      Topics:
+        - Ref: StagingNotificationSNSTopic
+{{/if}}
+
+{{#if Notifications.PipelineNotification}}
+  PipelineNotificationEvent:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        source:
+          - aws.codepipeline
+        detail-type:
+          - CodePipeline Pipeline Execution State Change
+        detail:
+          pipeline:
+            - Ref: CodePipeline
+          {{#if Notifications.PipelineNotification.States}}
+          state:
+            {{#each Notifications.PipelineNotification.States}}
+            {{#if this}}
+            - {{@key}}
+            {{/if}}
+            {{/each}}
+          {{/if}}
+      Targets:
+        - Id: PipelineNotificationSNSTopic
+          Arn:
+            Ref: PipelineNotificationSNSTopic
+          InputTransformer:
+            InputPathsMap:
+              state: '$.detail.state'
+              executionId: '$.detail.execution-id'
+            InputTemplate: '"<state> - <executionId>"'
+  PipelineNotificationSNSTopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sns:Publish
+            Resource:
+              - Ref: PipelineNotificationSNSTopic
+      Topics:
+        - Ref: PipelineNotificationSNSTopic
+{{/if}}

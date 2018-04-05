@@ -1,0 +1,13 @@
+# Reference: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-guide.html
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Helloworld microservice - Stage.'
+Parameters:
+  BaseStackName:
+    Type: String
+    Description: 'The name of the base deployment stack.'
+  StageNameParameter:
+    Type: String
+    Default: V1
+    Description: 'An identifier used to differentiate resources across deployments.'
+Resources:
+  # The resources that should be unique to this stage deployment.

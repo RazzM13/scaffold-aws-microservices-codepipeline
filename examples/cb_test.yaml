@@ -1,0 +1,18 @@
+# Reference: https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html
+version: 0.2
+phases:
+  install:
+    commands:
+      # This is where you would do things like install depedencies, e.g.:
+      # - 'npm install'
+  pre_build:
+    commands: []
+  build:
+    commands:
+      # Commands needed for testing your microservice, e.g.:
+      # - 'npm test'
+  post_build:
+    commands: []
+artifacts:
+  type: zip
+  files: []

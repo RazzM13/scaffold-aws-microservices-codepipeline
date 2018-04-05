@@ -1,0 +1,16 @@
+{{#each Microservices}}
+{{#each Sources}}
+- Name: {{@../key}}-{{@key}}
+  ActionTypeId:
+  {{#each ActionTypeId}}
+    {{@key}}: {{this}}
+  {{/each}}
+  Configuration:
+  {{#each Configuration}}
+    {{@key}}: {{this}}
+  {{/each}}
+  OutputArtifacts:
+    - Name: {{@../key}}-MainSrc
+  RunOrder: {{RunOrder}}
+{{/each}}
+{{/each}}

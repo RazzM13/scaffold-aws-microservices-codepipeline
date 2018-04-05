@@ -1,0 +1,85 @@
+{{#each Microservices}}
+- InputArtifacts: []
+  Name: {{@key}}-Reset
+  ActionTypeId:
+    Category: Deploy
+    Owner: AWS
+    Version: '1'
+    Provider: CloudFormation
+  OutputArtifacts: []
+  Configuration:
+    StackName:
+      'Fn::Join':
+        - '-'
+        -
+          - Ref: BaseStackName
+          - '{{@key}}-ut'
+    ActionMode: DELETE_ONLY
+    RoleArn:
+      'Fn::GetAtt':
+        - CloudFormationRole
+        - Arn
+  RunOrder: 1
+- InputArtifacts:
+    - Name: {{@key}}-Build
+  Name: {{@key}}-Prep
+  ActionTypeId:
+    Category: Deploy
+    Owner: AWS
+    Version: '1'
+    Provider: CloudFormation
+  OutputArtifacts: []
+  Configuration:
+    ActionMode: CHANGE_SET_REPLACE
+    ChangeSetName: latest
+    RoleArn:
+      'Fn::GetAtt':
+        - CloudFormationRole
+        - Arn
+    Capabilities: CAPABILITY_IAM
+    StackName:
+      'Fn::Join':
+        - '-'
+        -
+          - Ref: BaseStackName
+          - '{{@key}}-ut'
+    ParameterOverrides:
+      'Fn::Sub': |-
+        {
+        "BaseStackName": "${BaseStackName}",
+        "StageNameParameter": "ut"
+        }
+    TemplatePath: '{{@key}}-Build::cf_stage.yaml'
+  RunOrder: 2
+- InputArtifacts: []
+  Name: {{@key}}-Deploy
+  ActionTypeId:
+    Category: Deploy
+    Owner: AWS
+    Version: '1'
+    Provider: CloudFormation
+  OutputArtifacts: []
+  Configuration:
+    StackName:
+      'Fn::Join':
+        - '-'
+        -
+          - Ref: BaseStackName
+          - '{{@key}}-ut'
+    ActionMode: CHANGE_SET_EXECUTE
+    ChangeSetName: latest
+  RunOrder: 3
+- InputArtifacts:
+    - Name: {{@key}}-{{BuildSource}}
+  Name: {{@key}}-Test
+  ActionTypeId:
+    Category: Test
+    Owner: AWS
+    Version: '1'
+    Provider: CodeBuild
+  OutputArtifacts: []
+  Configuration:
+    ProjectName:
+      Ref: CodeBuildTestProject
+  RunOrder: 4
+{{/each}}

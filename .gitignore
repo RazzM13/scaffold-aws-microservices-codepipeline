@@ -1,0 +1,4 @@
+npm-debug.log
+out.yaml
+**/node_modules/
+**/python_modules/
